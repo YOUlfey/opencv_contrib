@@ -372,20 +372,25 @@ void FacemarkLBFImpl::training(void* parameters){
 
 bool FacemarkLBFImpl::fit( InputArray image, InputArray roi, OutputArrayOfArrays  _landmarks )
 {
-    // FIXIT
-    std::vector<Rect> & faces = *(std::vector<Rect> *)roi.getObj();
+    Mat roimat = roi.getMat();
+    std::vector<Rect> faces = roimat.reshape(4,roimat.rows);
     if (faces.empty()) return false;
 
-    std::vector<std::vector<Point2f> > & landmarks =
-        *(std::vector<std::vector<Point2f> >*) _landmarks.getObj();
+    std::vector<std::vector<Point2f> > landmarks(faces.size());
 
-    landmarks.resize(faces.size());
-
-    for(unsigned i=0; i<faces.size();i++){
+    for (unsigned i=0; i<faces.size();i++){
         params.detectROI = faces[i];
         fitImpl(image.getMat(), landmarks[i]);
     }
 
+    if (_landmarks.isMatVector()) {
+        std::vector<Mat> &v = *(std::vector<Mat>*) _landmarks.getObj();
+        for (size_t i=0; i<faces.size(); i++)
+            v.push_back(Mat(landmarks[i]));
+    } else { 
+        std::vector<std::vector<Point2f> > &v = *(std::vector<std::vector<Point2f> >*) _landmarks.getObj();
+        v = landmarks;
+    }
     return true;
 }
 
